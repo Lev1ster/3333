@@ -184,6 +184,9 @@ import statemachine class RangedWeapon extends CItemEntity
 	event OnWeaponHolsterEnd()
 	{
 		ExitCombatAction();
+		//++modAHW
+		if (FactsDoesExist('AHW') && (!thePlayer.AHW.combatready || !thePlayer.AHW.menu.GetVarValue('AHW','ahwcbow') ) ) thePlayer.AddTimer('AHWDelaySetCbowInvisible',StringToFloat(thePlayer.AHW.menu.GetVarValue('AHW','ahwdelay')),false);
+		//--modAHW
 	}
 	
 	event OnWeaponToNormalTransStart()
@@ -230,7 +233,10 @@ import statemachine class RangedWeapon extends CItemEntity
 			OnChangeTo( 'State_WeaponWait' );
 			thePlayer.playerAiming.StopAiming();
 		}
-	
+		
+		//++modAHW
+		if (FactsDoesExist('AHW') && (!thePlayer.AHW.combatready || !thePlayer.AHW.menu.GetVarValue('AHW','ahwcbow') ) ) thePlayer.AddTimer('AHWDelaySetCbowInvisible',StringToFloat(thePlayer.AHW.menu.GetVarValue('AHW','ahwdelay')),false);
+		//--modAHW
 		
 	}
 	

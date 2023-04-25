@@ -304,6 +304,11 @@ statemachine class W3PlayerWitcher extends CR4Player
 		RemoveAbility('Ciri_Q501');
 		RemoveAbility('SkillCiri');
 		
+		//++modAHW
+		AHW = new CAHW in this; 
+		AddTimer('AHWInit', 1.0, false);
+		//--modAHW
+		
 		if(spawnData.restored)
 		{
 			RestoreQuen(savedQuenHealth, savedQuenDuration);			
@@ -335,20 +340,12 @@ statemachine class W3PlayerWitcher extends CR4Player
 			NewGamePlusAdjustDLC5NilfgardianSet(inv);
 			NewGamePlusAdjustDLC10WolfSet(inv);
 			NewGamePlusAdjustDLC14SkelligeSet(inv);
-			
-			
-			
-			
 			if(horseManager)
 			{
 				NewGamePlusAdjustDLC1TemerianSet(horseManager.GetInventoryComponent());
 				NewGamePlusAdjustDLC5NilfgardianSet(horseManager.GetInventoryComponent());
 				NewGamePlusAdjustDLC10WolfSet(horseManager.GetInventoryComponent());
-				NewGamePlusAdjustDLC14SkelligeSet(horseManager.GetInventoryComponent());	
-				
-				
-				
-				
+				NewGamePlusAdjustDLC14SkelligeSet(horseManager.GetInventoryComponent());
 			}
 		}
 		
@@ -842,6 +839,13 @@ statemachine class W3PlayerWitcher extends CR4Player
 			FactsAdd( "Patch_Mutagen_Ing_Stacking" );
 		}
 	}
+	
+	//++modAHW
+	timer function AHWInit(dt:float,id:int)
+	{
+		AHW.Init();
+	}
+	//--modAHW
 	
 	private final function Patch_MutagenStacking()
 	{
@@ -2248,13 +2252,21 @@ statemachine class W3PlayerWitcher extends CR4Player
 		var oils : array< CBaseGameplayEffect >;
 		var i, cnt : int;
 		var buff : W3Effect_Oil;
-
-		
-		inv.RemoveAllOilsFromItem(item);
-		return;		
-		
-		
-		
+	
+		oils = GetBuffs( EET_Oil );
+		for( i=0; i<oils.Size(); i+=1 )
+		{			
+			buff = (W3Effect_Oil) oils[ i ];
+			if( buff && buff.GetSwordItemId() == item )
+			{
+				cnt += 1;
+			}
+		}
+		while( cnt > 1 )
+		{
+			inv.RemoveOldestOilFromItem( item );
+			cnt -= 1;
+		}
 	}
 	
 	
@@ -3108,7 +3120,7 @@ statemachine class W3PlayerWitcher extends CR4Player
 	timer function Mutation7CombatStartHackFixGo( dt : float, id : int )
 	{
 		var actors : array< CActor >;
-
+		
 		if( IsMutationActive( EPMT_Mutation7 ) )
 		{
 			actors = GetEnemies();
@@ -3412,9 +3424,19 @@ statemachine class W3PlayerWitcher extends CR4Player
 		SetSpecialAttackTimeRatio(ratio);
 		
 		
+		focusHighlight = ratio * GetStatMax(BCS_Focus);
+		focusHighlight = MinF(focusHighlight, GetStat(BCS_Focus));
+		focusHighlight = FloorF(focusHighlight);
 		
-		
-		
+		hud = (CR4ScriptedHud)theGame.GetHud();
+		if ( hud )
+		{
+			hudWolfHeadModule = (CR4HudModuleWolfHead)hud.GetHudModule( "WolfHeadModule" );
+			if ( hudWolfHeadModule )
+			{
+				hudWolfHeadModule.LockFocusPoints((int)focusHighlight);
+			}		
+		}
 	}
 	
 	public function OnSpecialAttackHeavyActionProcess()
@@ -5971,6 +5993,7 @@ statemachine class W3PlayerWitcher extends CR4Player
 				{
 					rangedWeapon.OnReplaceAmmo();
 					rangedWeapon.OnWeaponReload();
+					if (FactsDoesExist('AHW') && AHW.Enabled() ) rangedWeapon.ClearDeployedEntity(true); //modAHW
 				}
 				else
 				{
@@ -6084,11 +6107,26 @@ statemachine class W3PlayerWitcher extends CR4Player
 			}
 		}
 		
+		//++modAHW
+		if (AHW.Enabled())
+		{
+			if (FactsDoesExist('AHW'))
+			{
+				if (inv.IsItemWeapon(item) && !toHand) AddTimer('AHWDelaySetAllInvisible', 0.1, false);
+			}
+			else if (AHW.IsCloakMod(item)) 
+			{ 
+				AHW.SetAllVisible(false);
+				FactsAdd('AHW'); 
+			}
+			//if (AHW.IsCloakMod(previousItemInSlot) && !AHW.IsCloakMod(item)) { FactsRemove('AHW'); AHW.SetAllVisible(true); }
+		}
+		//--modAHW
 		
-		
-		
-		tagOfASet = inv.DetectTagOfASet(item);
-		CheckForFullyArmedByTag(tagOfASet);
+		if(inv.IsItemSetItem(item))
+		{
+			CheckForFullyArmedAchievement();	
+		}
 		
 		return true;
 	}
@@ -6249,6 +6287,14 @@ statemachine class W3PlayerWitcher extends CR4Player
 		item = itemSlots[slot];
 		itemSlots[slot] = GetInvalidUniqueId();
 		
+		//++modAHW
+		if (FactsDoesExist('AHW') && AHW.IsCloakMod(item) && (!AHW.menu.GetVarValue('AHW','ahwhidec') || !AHW.combatready)) 
+		{ 
+			FactsRemove('AHW'); 
+			AHW.combatready = false; 
+			AHW.SetAllVisible(true); 
+		}
+		//--modAHW
 		
 		if(inv.ItemHasTag( item, 'PhantomWeapon' ) && GetPhantomWeaponMgr())
 		{
@@ -7178,7 +7224,7 @@ statemachine class W3PlayerWitcher extends CR4Player
 		if(ret == EI_Pass || ret == EI_Override || ret == EI_Cumulate)
 		{
 			if( finalPotionToxicity > 0.f )
-			{				
+			{
 				abilityManager.GainStat(BCS_Toxicity, finalPotionToxicity );
 			}
 			
@@ -7244,7 +7290,7 @@ statemachine class W3PlayerWitcher extends CR4Player
 		randomPotions.PushBack( EET_Blizzard );
 		randomPotions.PushBack( EET_FullMoon );
 		randomPotions.PushBack( EET_GoldenOriole );
-		
+		randomPotions.PushBack( EET_KillerWhale );
 		randomPotions.PushBack( EET_MariborForest );
 		randomPotions.PushBack( EET_PetriPhiltre );
 		randomPotions.PushBack( EET_Swallow );
@@ -10160,9 +10206,18 @@ statemachine class W3PlayerWitcher extends CR4Player
 		if( !inv.IsIdValid( item ) || !inv.ItemHasTag(item, theGame.params.ITEM_SET_TAG_BONUS ) )  
 		{
 			
-			
-			
-			
+			if( !IsSetBonusActive( EISB_Wolf_1 ) )
+			{
+				if( GetItemEquippedOnSlot( EES_SteelSword, id ) )
+				{
+					RemoveExtraOilsFromItem( id );
+				}
+				if( GetItemEquippedOnSlot( EES_SilverSword, id ) )
+				{
+					RemoveExtraOilsFromItem( id );
+				}
+			}
+		
 			return;
 		}
 		
@@ -10184,22 +10239,23 @@ statemachine class W3PlayerWitcher extends CR4Player
 		}
 		
 		
-		if( setType != EIST_Vampire )
+		if( setType != EIST_Vampire && amountOfSetPiecesEquipped[ setType ] == theGame.params.ITEMS_REQUIRED_FOR_MAJOR_SET_BONUS )
 		{
-			if(amountOfSetPiecesEquipped[ setType ] == theGame.params.ITEMS_REQUIRED_FOR_MAJOR_SET_BONUS)
-			{
-				theGame.GetGamerProfile().AddAchievement( EA_ReadyToRoll );
-			}
-			else 
-			{
-				theGame.GetGamerProfile().NoticeAchievementProgress( EA_ReadyToRoll, amountOfSetPiecesEquipped[ setType ]);
-			}
+			theGame.GetGamerProfile().AddAchievement( EA_ReadyToRoll );
 		}
 		
 		
-		
-		
-		
+		if( !IsSetBonusActive( EISB_Wolf_1 ) )
+		{
+			if( GetItemEquippedOnSlot( EES_SteelSword, id ) )
+			{
+				RemoveExtraOilsFromItem( id );
+			}
+			if( GetItemEquippedOnSlot( EES_SilverSword, id ) )
+			{
+				RemoveExtraOilsFromItem( id );
+			}
+		}
 		
 		ManageActiveSetBonuses( setType );
 		

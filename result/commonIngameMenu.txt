@@ -12,6 +12,7 @@ class CR4CommonIngameMenu extends CR4MenuBase
 	private var m_menuData 	  		: array< SMenuTab >;
 	protected var currentMenuName 	: name;
 	public var reopenRequested	: bool; default reopenRequested = false;
+	public var tempahw : bool; //modAHW
 	
 	event  OnConfigUI()
 	{
@@ -54,17 +55,31 @@ class CR4CommonIngameMenu extends CR4MenuBase
 			OnRequestSubMenu( menuName, GetMenuInitData() );
 			
 			theInput.StoreContext( 'EMPTY_CONTEXT' );
+			tempahw = thePlayer.AHW.Enabled();//modAHW
 		}
 	}
 	
 	event  OnClosingMenu()
 	{
-		
 		if(theGame.IsDialogOrCutscenePlaying())
 			theSound.SoundEvent("music_resume");
 		
-		
 		super.OnClosingMenu();
+		//++modAHW
+		if (thePlayer.AHW.Enabled() != tempahw)
+		{
+			if (thePlayer.AHW.Enabled() && thePlayer.AHW.IsCloakModEquipped())
+			{
+				thePlayer.AHW.SetAllVisible(false);
+				FactsAdd('AHW'); 
+			}
+			if (!thePlayer.AHW.Enabled() && FactsDoesExist('AHW'))
+			{
+				FactsRemove('AHW'); 
+				thePlayer.AHW.SetAllVisible(true); 
+			}
+		}
+		//--modAHW
 		
 		if (m_configUICalled)
 		{

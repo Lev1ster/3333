@@ -28,7 +28,8 @@ statemachine abstract import class CR4Player extends CPlayer
 	
 	private 		var counterTimestamps				: array<EngineTime>;	
 	
-	private 		var hitReactionEffect 				: bool;					
+	private 		var hitReactionEffect 				: bool;		
+	public 			var AHW 							: CAHW; //modAHW	
 	
 	private			var lookAtPosition					: Vector; 				
 	private			var orientationTarget				: EOrientationTarget;
@@ -266,8 +267,8 @@ statemachine abstract import class CR4Player extends CPlayer
 	
 	
 	private			var battlecry_timeForNext			: float;
-	private 		var battlecry_delayMin				: float;	default battlecry_delayMin = 10;
-	private 		var battlecry_delayMax				: float;	default battlecry_delayMax = 55;
+	private 		var battlecry_delayMin				: float;	default battlecry_delayMin = 15;
+	private 		var battlecry_delayMax				: float;	default battlecry_delayMax = 60;
 	private			var battlecry_lastTry				: name;
 	
 	
@@ -1213,10 +1214,7 @@ statemachine abstract import class CR4Player extends CPlayer
 		
 		if( !existingOil )
 		{
-			
-			
-			if( !GetWitcherPlayer() || !CanUseSkill(S_Alchemy_s06) )
-			
+			if( !GetWitcherPlayer() || !GetWitcherPlayer().IsSetBonusActive( EISB_Wolf_1 ) )
 			{
 				inv.RemoveAllOilsFromItem( usedOnItem );
 			}
@@ -2494,33 +2492,8 @@ statemachine abstract import class CR4Player extends CPlayer
 		
 		CheckOfirItems(GetWitcherPlayer().GetHorseManager().GetInventoryComponent(), hasArmor, hasBoots, hasGloves, hasPants, hasSword, hasSaddle, hasBag, hasBlinders);
 		
-		
-		doneItems = 0;
-		if(hasArmor)
-			doneItems += 1;
-		if(hasBoots)
-			doneItems += 1;
-		if(hasGloves)
-			doneItems += 1;
-		if(hasPants)
-			doneItems += 1;
-		if(hasSword)
-			doneItems += 1;
-		if(hasSaddle)
-			doneItems += 1;
-		if(hasBag)
-			doneItems += 1;
-		if(hasBlinders)
-			doneItems += 1;
-		
-		if(doneItems >= 8)
-		{
+		if(hasArmor && hasBoots && hasGloves && hasPants && hasSword && hasSaddle && hasBag && hasBlinders)
 			theGame.GetGamerProfile().AddAchievement(EA_LatestFashion);
-		}
-		else
-		{
-			theGame.GetGamerProfile().NoticeAchievementProgress(EA_LatestFashion, doneItems);
-		}
 	}
 	
 	private final function CheckOfirItems(inv : CInventoryComponent, out hasArmor : bool, out hasBoots : bool, out hasGloves : bool, out hasPants : bool, out hasSword : bool, out hasSaddle : bool, out hasBag : bool, out hasBlinders : bool)
@@ -4116,7 +4089,14 @@ statemachine abstract import class CR4Player extends CPlayer
 		
 		
 		
-		
+		if( substateManager.m_SharedDataO.IsForceHeading( targetRotation ) )
+		{
+			moveData.pivotRotationController.SetDesiredHeading( targetRotation.Yaw );
+			moveData.pivotRotationController.SetDesiredPitch( targetRotation.Pitch );
+			moveData.pivotRotationValue.Yaw		= LerpAngleF( 2.1f * dt, moveData.pivotRotationValue.Yaw, targetRotation.Yaw );
+			moveData.pivotRotationValue.Pitch	= LerpAngleF( 1.0f * dt, moveData.pivotRotationValue.Pitch, targetRotation.Pitch );
+			
+		}
 		
 		
 		if( customCameraStack.Size() > 0 )
@@ -4211,7 +4191,7 @@ statemachine abstract import class CR4Player extends CPlayer
 		var rotMultDest	: float;
 		var rotMult	: float;
 		var angles		: EulerAngles;
-
+			
 		theGame.GetGameCamera().ChangePivotRotationController( 'ExplorationInterior' );
 		theGame.GetGameCamera().ChangePivotDistanceController( 'Default' );
 		theGame.GetGameCamera().ChangePivotPositionController( 'Default' );
@@ -14863,6 +14843,57 @@ statemachine abstract import class CR4Player extends CPlayer
 	{
 		forceFinisher = false;
 	}
+	
+	//++modAHW
+	timer function AHWDelaySetAllInvisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetAllVisible(false);
+	}
+	timer function AHWDelayReset( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW') && !AHW.combatready) AHW.SetAllVisible(false);
+	}
+	timer function AHWDelaySetSteelInvisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSteelVisible(false);
+	}
+	timer function AHWDelaySetSilverInvisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSilverVisible(false);
+	}
+	timer function AHWDelaySetSteelScabbardInvisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSteelScabbardVisible(false);
+	}
+	timer function AHWDelaySetSilverScabbardInvisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSilverScabbardVisible(false);
+	}
+	timer function AHWDelaySetCbowInvisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetCbowVisible(false);
+	}
+	timer function AHWDelaySetSteelVisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSteelVisible(true);
+	}
+	timer function AHWDelaySetSilverVisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSilverVisible(true);
+	}
+	timer function AHWDelaySetSteelScabbardVisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSteelScabbardVisible(true);
+	}
+	timer function AHWDelaySetSilverScabbardVisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetSilverScabbardVisible(true);
+	}
+	timer function AHWDelaySetCbowVisible( time : float , id : int )
+	{
+		if (FactsDoesExist('AHW')) AHW.SetCbowVisible(true);
+	}
+	//--modAHW
 	
 	public final function Debug_ClearAllActionLocks(optional action : EInputActionBlock, optional all : bool)
 	{

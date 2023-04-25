@@ -609,6 +609,9 @@ state SelectingWeapon in WeaponHolster
 			case PW_None :
 				thePlayer.SetRequiredItems('Any', 'None');
 				thePlayer.ProcessRequiredItems();
+				//++modAHW
+				if (FactsDoesExist('AHW') && thePlayer.AHW.Enabled()) thePlayer.AHW.Combat(false);
+				//--modAHW
 				break;
 			case PW_Fists : 
 
@@ -618,10 +621,16 @@ state SelectingWeapon in WeaponHolster
 				}
 				thePlayer.SetRequiredItems('Any', 'fist' );
 				thePlayer.ProcessRequiredItems();
+				//++modAHW
+				if (FactsDoesExist('AHW') && thePlayer.AHW.Enabled()) thePlayer.AHW.Combat(false);
+				//--modAHW
 				break;
 			case PW_Steel:
 				if( GetWitcherPlayer().GetItemEquippedOnSlot(EES_SteelSword, item) )
 				{
+					//++modAHW
+					if (FactsDoesExist('AHW') && thePlayer.AHW.Enabled()) thePlayer.AHW.Combat(true,1);
+					//--modAHW
 					thePlayer.DrawItemsLatent(item);
 				}
 				else if ( (W3ReplacerCiri)thePlayer )
@@ -636,6 +645,9 @@ state SelectingWeapon in WeaponHolster
 			case PW_Silver:
 				if( GetWitcherPlayer().GetItemEquippedOnSlot( EES_SilverSword, item) )
 				{
+					//++modAHW
+					if (FactsDoesExist('AHW') && thePlayer.AHW.Enabled()) thePlayer.AHW.Combat(true,2);
+					//--modAHW
 					thePlayer.DrawItemsLatent(item);
 				}
 				break;

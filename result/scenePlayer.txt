@@ -22,6 +22,7 @@ import class CStorySceneOutput extends CStorySceneControlPart
 import statemachine class CStoryScenePlayer extends CEntity
 {
 	private var m_isFinalboard : bool;
+	public var sceneuncloak : bool; //modAHW
 
 	default m_isFinalboard = false;
 	default autoState = 'Gameplay';
@@ -78,6 +79,14 @@ import statemachine class CStoryScenePlayer extends CEntity
 		{
 			hud.OnCutsceneStarted();
 		}
+		//++modAHW
+		if (FactsDoesExist('AHW')) 
+		{
+			sceneuncloak = false;
+			AddTimer('AHWCheckHeld', 1.0, true); 
+			AddTimer('AHWCheckTorso', 1.0, true);
+		}
+		//--modAHW
 	}
 	
 	import final function DbFactAdded( factName : string );
@@ -101,6 +110,15 @@ import statemachine class CStoryScenePlayer extends CEntity
 		}
 
 		theGame.SetIsDialogOrCutscenePlaying(false);
+		//++modAHW
+		if (FactsDoesExist('AHW')) 
+		{
+			RemoveTimer('AHWCheckHeld'); 
+			RemoveTimer('AHWCheckTorso');
+			if (!thePlayer.IsWeaponHeld('steelsword') && !thePlayer.IsWeaponHeld('silversword') && !thePlayer.GetWeaponHolster().IsOnTheMiddleOfHolstering()) thePlayer.AHW.Combat(false);
+		}
+		if (sceneuncloak) thePlayer.AddTimer('AHWDelayReset',1.0,false);
+		//--modAHW
 	}
 	
 	event OnCameraBlendToGameplay()
@@ -158,6 +176,31 @@ import statemachine class CStoryScenePlayer extends CEntity
 	import function RestartSection();
 	
 	import function GetSceneWorldPos() : Vector;
+	//++modAHW
+	timer function AHWCheckHeld(time:float,id:int)
+	{	
+		if (FactsDoesExist('AHW'))
+		{
+			if (thePlayer.IsWeaponHeld('steelsword')) thePlayer.AHW.Combat(true,1);
+			else if (thePlayer.IsWeaponHeld('silversword')) thePlayer.AHW.Combat(true,2);
+			else thePlayer.AHW.Combat(false);
+		}
+	}
+	timer function AHWCheckTorso(time:float,id:int)
+	{
+		var inv : CInventoryComponent;
+		var Cid : SItemUniqueId; 
+		var cloakname : CName;
+		
+		if (FactsDoesExist('AHW'))
+		{
+			inv = thePlayer.GetInventory();
+			inv.GetItemEquippedOnSlot(EES_Armor, Cid);
+			cloakname = inv.GetItemName(Cid);
+			if (!sceneuncloak && (cloakname=='Body torso 01' || cloakname=='None') ) { thePlayer.UnequipItem(thePlayer.AHW.cloakid); sceneuncloak = true; }
+		}
+	}
+	//--modAHW
 }
 
 state Gameplay in CStoryScenePlayer
